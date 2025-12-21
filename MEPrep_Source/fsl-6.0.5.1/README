@@ -1,0 +1,17 @@
+# This is the "main" build script for FSL. 
+#
+# To build any of the individual projects or libs you use it like so:
+#
+# cd $FSLDIR # change to the root fsl directory, the build.log file will be written to the current folder
+# ./build flirt # an example of how you would build just one project (flirt)
+#
+# cd $FSLDIR # change to the root fsl directory, the build.log file will be written to the current folder
+# ./build utils # an example of how you would build one of the core libs used in other FSL projects
+#
+#
+# Things to keep in mind:
+#
+# If you make a change to a LIB (any of the MASTERLIBS listed below) then you will have to rebuild all
+# projects that use that LIB in order for the changes to be effective. For example, if you made a change to 
+# the "utils" LIB which contains the option parser, then to see those changes take effect in the "flirt" PROJECT
+# you would have to build "utils" and "flirt" (and all other PROJECTS that use the LIB eventually). 
