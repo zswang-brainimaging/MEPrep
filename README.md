@@ -34,6 +34,8 @@ docker build -t  zswang2020/meprep_final:latest .
 ```
 ## Example
 ```bash
+run_meprep.sh:
+#!/bin/bash
 Input_Dir=/your/path/to/BIDS_Data_Folder_name
 Output_Dir=/your/path/to/MEPrep_Output_Folder_Name
 Work_Dir=/your/path/to/work_folder_name
