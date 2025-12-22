@@ -30,7 +30,21 @@ cd MEPrep/fMRIPrep_Source
 cp -r ../MEPrep_Source .
 cp ./MEPrep_Source/Dockerfile .
 cp ./MEPrep_Source/requirements.txt .
-docker build -t  zswang2020/meprep_final:latest . 
+docker build -t  zswang2020/meprep_final:latest .
+```
+## Example
+```bash
+Input_Dir=/your/path/to/BIDS_Data_Folder_name
+Output_Dir=/your/path/to/MEPrep_Output_Folder_Name
+Work_Dir=/your/path/to/work_folder_name
+Freesurfer_license_Dir=/your/path/to/freesurfer_license_folder
+Predenoising_choice=preICA_scme   ## set it to Raw if choosing no pre-denoising
+MEPrep_Image=zswang2020/meprep_final:latest
+## replace the participant ID of 123456 with your participant ID
+## run the Docker image:
+docker run -v $Input_Dir:/input  -v  $Output_Dir:/output -v $Work_Dir:/work  -v $Freesurfer_license_Dir:/fs_license_dir -it -d  $MEPrep_Image  /input  /output  participant  --participant-label 123456  --tedana-choice Both --preDenoising-choice $Predenoising_choice  --cifti-output 91k --output-spaces MNI152NLin2009cAsym:res-native T1w -w /work  --write-graph --output-layout legacy --fs-license-file /fs_license_dir/license.txt
+
+
 
 
 
