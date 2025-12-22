@@ -1,0 +1,205 @@
+#!/bin/bash
+#
+# run_meprep — Loop wrapper for MEPrep
+# Supports:
+#   --meprep-methods optcom,meica,poptcom,pmeica
+# Default: all 4 in correct order
+#
+
+# ------------------------------------------------------------
+# 0. If no arguments → show wrapper help + MEPrep help
+# ------------------------------------------------------------
+if [[ $# -eq 0 ]]; then
+    echo "run_meprep wrapper:"
+    echo "  --meprep-methods   Comma-separated list of MEPrep methods to run."
+    echo "                     Allowed: optcom, meica, poptcom, pmeica"
+    echo "                     Default: all four in this order."
+    echo ""
+    echo "Below is the MEPrep usage:"
+    echo "------------------------------------------------------------"
+    exec meprep
+fi
+
+# ------------------------------------------------------------
+# 1. Capture full user arguments
+# ------------------------------------------------------------
+USER_ARGS=("$@")
+
+# ------------------------------------------------------------
+# 2. Parse --meprep-methods argument (if provided)
+# ------------------------------------------------------------
+METH_ARG=""
+CLEAN_ARGS=()
+
+i=0
+while [[ $i -lt $# ]]; do
+    tok="${USER_ARGS[$i]}"
+    if [[ "$tok" == "--meprep-methods" ]]; then
+        if (( i+1 < $# )); then
+            METH_ARG="${USER_ARGS[$((i+1))]}"
+            i=$((i+2))
+            continue
+        fi
+    fi
+    CLEAN_ARGS+=("$tok")
+    i=$((i+1))
+done
+
+# ------------------------------------------------------------
+# 3. Determine final method list
+# ------------------------------------------------------------
+DEFAULT_METHODS=("optcom" "meica" "poptcom" "pmeica")
+MEPREP_METHODS=()
+
+if [[ -z "$METH_ARG" ]]; then
+    MEPREP_METHODS=("${DEFAULT_METHODS[@]}")
+else
+    IFS=',' read -ra REQ <<< "$METH_ARG"
+
+    # Preserve default order
+    for m in "${DEFAULT_METHODS[@]}"; do
+        for r in "${REQ[@]}"; do
+            if [[ "$r" == "$m" ]]; then
+                MEPREP_METHODS+=("$m")
+            fi
+        done
+    done
+fi
+
+# ------------------------------------------------------------
+# 4. Extract positional args: BIDS_DIR, OUTPUT_DIR
+# ------------------------------------------------------------
+BIDS_DIR=""
+OUTPUT_DIR=""
+pos=0
+
+for arg in "${CLEAN_ARGS[@]}"; do
+    if [[ "$arg" != -* ]]; then
+        pos=$((pos+1))
+        [[ $pos -eq 1 ]] && BIDS_DIR="$arg"
+        [[ $pos -eq 2 ]] && OUTPUT_DIR="$arg"
+        [[ $pos -ge 2 ]] && break
+    fi
+done
+
+# ------------------------------------------------------------
+# 5. Extract work folder (-w or --work-dir)
+# ------------------------------------------------------------
+WORK_DIR=""
+for ((k=0; k < ${#CLEAN_ARGS[@]}; k++)); do
+    a="${CLEAN_ARGS[$k]}"
+    if [[ "$a" == "-w" || "$a" == "--work-dir" ]]; then
+        if (( k+1 < ${#CLEAN_ARGS[@]} )); then
+            WORK_DIR="${CLEAN_ARGS[$((k+1))]}"
+        fi
+    fi
+done
+[[ -z "$WORK_DIR" ]] && WORK_DIR="/workdir"
+
+# ------------------------------------------------------------
+# 6. Validate directories (must already exist in container)
+# ------------------------------------------------------------
+if [[ ! -d "$OUTPUT_DIR" ]]; then
+    echo "ERROR: Output directory does not exist inside container: $OUTPUT_DIR"
+    exit 1
+fi
+
+if [[ ! -d "$WORK_DIR" ]]; then
+    echo "ERROR: Work directory does not exist inside container: $WORK_DIR"
+    exit 1
+fi
+
+# ------------------------------------------------------------
+# 7. Log file for final commands
+# ------------------------------------------------------------
+LOGFILE="${WORK_DIR}/final_input_arguments_meprep.txt"
+echo "===== MEPrep Input Argument History ====="  > "$LOGFILE"
+
+# ------------------------------------------------------------
+# 8. Mapping method → preDenoising-choice + tedana-choice
+# ------------------------------------------------------------
+function map_method() {
+    local m="$1"
+
+    case "$m" in
+        "optcom")
+            echo "Raw optcom"
+            ;;
+        "meica")
+            echo "Raw optcomDenoised"
+            ;;
+        "poptcom")
+            echo "preICA_scme optcom"
+            ;;
+        "pmeica")
+            echo "preICA_scme optcomDenoised"
+            ;;
+        *)
+            echo "ERROR"; return 1;;
+    esac
+}
+
+# ------------------------------------------------------------
+# 9. Start
+# ------------------------------------------------------------
+echo ""
+echo "== MEPrep wrapper starting =="
+echo "Methods to run: ${MEPREP_METHODS[*]}"
+echo "BIDS_DIR   = $BIDS_DIR"
+echo "OUTPUT_DIR = $OUTPUT_DIR"
+echo "WORK_DIR   = $WORK_DIR"
+echo ""
+
+MEPREP="meprep"
+
+# ------------------------------------------------------------
+# 10. Loop over selected methods
+#     With retry on failure
+# ------------------------------------------------------------
+for METHOD in "${MEPREP_METHODS[@]}"; do
+
+    read PRE TED <<< "$(map_method "$METHOD")"
+
+    echo ""
+    echo "------------------------------------------------------------"
+    echo "Running MEPrep method: $METHOD"
+    echo "  → preDenoising-choice = $PRE"
+    echo "  → tedana-choice       = $TED"
+    echo "------------------------------------------------------------"
+
+    # Log
+    echo "===== METHOD: $METHOD =====" >> "$LOGFILE"
+    echo "$MEPREP ${CLEAN_ARGS[*]} --preDenoising-choice $PRE --tedana-choice $TED" >> "$LOGFILE"
+
+    # First run
+    $MEPREP \
+        "${CLEAN_ARGS[@]}" \
+        --preDenoising-choice "$PRE" \
+        --tedana-choice "$TED"
+
+    EXIT_CODE=$?
+
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        echo "WARNING: MEPrep ($METHOD) failed, retrying once…"
+        echo "RETRYING METHOD: $METHOD" >> "$LOGFILE"
+
+        # Retry
+        $MEPREP \
+            "${CLEAN_ARGS[@]}" \
+            --preDenoising-choice "$PRE" \
+            --tedana-choice "$TED"
+
+        EXIT_CODE=$?
+
+        if [[ $EXIT_CODE -ne 0 ]]; then
+            echo "ERROR: MEPrep failed again for $METHOD — stopping wrapper."
+            exit 1
+        fi
+    fi
+done
+
+echo ""
+echo "== All MEPrep runs completed successfully =="
+echo "Log saved to $LOGFILE"
+echo ""
+
