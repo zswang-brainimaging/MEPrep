@@ -1,0 +1,169 @@
+#!/bin/sh
+
+# This is the "main" build script for FSL.
+#
+# To build any of the individual projects or libs you use it like so:
+#
+# cd $FSLDIR # change to the root fsl directory, the build.log file will be written to the current folder
+# ./build flirt # an example of how you would build just one project (flirt)
+#
+# cd $FSLDIR # change to the root fsl directory, the build.log file will be written to the current folder
+# ./build utils # an example of how you would build one of the core libs used in other FSL projects
+#
+#
+# Things to keep in mind:
+#
+# If you make a change to a LIB (any of the MASTERLIBS listed below) then you will have to rebuild all
+# projects that use that LIB in order for the changes to be effective. For example, if you made a change to
+# the "utils" LIB which contains the option parser, then to see those changes take effect in the "flirt" PROJECT
+# you would have to build "utils" and "flirt" (and all other PROJECTS that use the LIB eventually).
+
+# if the user gave arguments to the build script then PROJECTS will be the ones they requested
+if [ $# -ge 1 ] ; then
+    PROJECTS="$@";
+
+# if no arguments were passed to the build script then do a full build of all LIBS and PROJECTS
+else
+    # MASTERLIBS are all of the core(ish) LIBS that other FSL PROJECTS rely on
+    # The build order for MASTERLIBS is very important, and should not be modified unless you know what
+    # you are doing.
+    MASTERLIBS="
+    CiftiLib-master \
+    utils \
+    znzlib \
+    NewNifti \
+    niftiio \
+    fslio \
+    giftiio \
+    miscmaths \
+    newimage \
+    libhfunc \
+    libvis \
+    first_lib \
+    meshclass \
+    fslvtkio \
+    misc_tcl \
+    basisfield \
+    warpfns \
+    bint \
+    shapeModel \
+    MVdisc \
+    fslvtkconv \
+    fslsurface \
+    libmeshutils \
+    newmesh \
+    DiscreteOpt \
+    FastPDlib \
+    MSMRegLib \
+    misc_c \
+    dpm \
+    topup "
+
+    # MASTERPROJECTS are all of the independent FSL PROJECTS that can be built and installed into $FSLDIR/bin
+    # *unlike* the LIBS, the PROJECTS listed here do not have to be built in a certain order. That means that you
+    # can change the order if you want (but why would you?!). However, if you request that a certain project
+    # be built via a call like: ./build <my_tool> then make sure all of the LIBS are built (or available in $FSLDIR)
+    # beforehand. Remember, if you made a change to a LIB and a PROJECT then you must build them both if you want to see
+    # the change in the PROJECT. Be sure to build the LIB first. An example could be: ./build utils flirt
+
+    MASTERPROJECTS="
+    asl_mfree \
+    avwutils \
+    basil \
+    baycest \
+    bet2 \
+    bianca \
+    cluster \
+    copain \
+    fsl_deface \
+    dwssfp \
+    eddy \
+    fabber_core \
+    fabber_models_asl \
+    fabber_models_cest \
+    fabber_models_dce \
+    fabber_models_dsc \
+    fabber_models_dualecho \
+    fabber_models_dwi \
+    fabber_models_pet \
+    fabber_models_qbold \
+    fabber_models_t1 \
+    fast4 \
+    fdt \
+    feat5 \
+    film \
+    filmbabe \
+    first \
+    flameo \
+    flirt \
+    fnirt \
+    fslpres \
+    fslvbm \
+    fugue \
+    gps \
+    ifit \
+    lesions \
+    load_dicom \
+    load_varian \
+    mcflirt \
+    melodic \
+    misc_scripts \
+    miscvis \
+    mist \
+    mm \
+    MSM \
+    nma \
+    oxford_asl \
+    possum \
+    ptx2 \
+    qboot \
+    randomise \
+    relax \
+    sgeutils \
+    siena \
+    slicetimer \
+    susan \
+    swe \
+    tbss \
+    tissue \
+    verbena \
+    xtract";
+
+    # If a full build is requested, then the PROJECTS variable will be created in the order:
+    #
+    # 1. extras
+    # 2. MASTERLIBS (in order listed above)
+    # 3. MASTERPROJECTS (in order listed above)
+    #
+    # Extras is a special project (of sub projects) that needs to be built before all other (even before LIBS).
+    # Therefore, we inject it into the PROJECTS array and build it first
+
+    PROJECTS="extras" #Extras is special project that needs to be built first
+
+    # loop through all MASTERLIBS (in order listed above) and check that we have a corresponding directory for each LIB
+    # if the source code directory exists, then add it to the PROJECTS list for building
+    for project in ${MASTERLIBS}; do
+        if [ -d src/${project} ]; then
+        PROJECTS="${PROJECTS} ${project} "
+        fi #-d
+    done #project (MASTERLIBS)
+
+
+    # Now loop through all MASTERPROJECTS (in order listed above) and check that we have a corresponding directory for each PROJECT
+    # if the source code directory exists, then add it to the PROJECTS list for building
+    for project in ${MASTERPROJECTS}; do
+        if [ -d src/${project} ]; then
+        PROJECTS="${PROJECTS} ${project} "
+        fi #-d
+    done #project (MASTERPROJECTS)
+fi #full build
+
+echo "Building projects - see build.log file for progress..."
+./config/common/buildproj $PROJECTS > ./build.log 2>&1
+finalStatus=$?
+if [ $finalStatus -eq 0 ]; then
+    echo "Build completed successfully.";
+else
+    echo "Build failed to build all projects.";
+fi
+exit $finalStatus

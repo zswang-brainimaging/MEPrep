@@ -1,0 +1,53 @@
+---------------------------------------------------------------------
+xtract_data is the data associated with the XTRACT tool
+
+The tractography protocols were created by:
+
+Rogier Mars & Stamatios Sotiropoulos
+
+with help from:
+Saad Jbabdi, Kathryn Bryant, Shaun Warrington, Marina Charquero-Ballester, Gwenaelle Douaud
+
+---------------------------------------------------------------------
+Citations:
+
+
+Warrington S, Bryant K, Khrapitchev A, Sallet J, Charquero-Ballester M, Douaud G, 
+Jbabdi S*, Mars R*, Sotiropoulos SN* (2020) XTRACT - Standardised protocols for 
+automated tractography in the human and macaque brain. 
+NeuroImage. DOI: 10.1016/j.neuroimage.2020.116923
+
+---------------------------------------------------------------------
+
+
+How to create own 'protocol' folder:
+
+Suppose you want to create an automated protocol for a tract called 'mytrack'.  
+
+First you need to create a folder called 'mytrack'.
+
+Then create the following image files (with this exact naming) and copy them into mytrack:
+
+[Compulsory]:
+- seed.nii.gz : a seed mask in MNI152 space
+
+[Optional]:
+- stop.nii.gz    : a stop mask if required
+- exclude.nii.gz : an exclusion mask if required
+- ONE of the following:
+  - target.nii.gz  :  a single target mask  
+  - target1.nii.gz, target2.nii.gz, etc. : a number of targets, in which case streamlines will be kept if they cross ALL of them
+- invert (empty file to indicate that a seed->target and target->seed run will be added and combined)
+  if such an option is required a single "target.nii.gz" file is also expected 
+
+
+In order to use the protocol masks with XTRACT, you need to defined a seeding strategy in a file called StructureList.
+
+See e.g. $FSLDIR/data/xtract_data/Human or $FSLDIR/data/xtract_data/Macaque for examples.
+
+The StructList file is a text file with one entry per tract following this scheme:
+
+`<tractName> <number>`
+
+where `<tractName>` matches the protocol folder name (e.g. 'mytrack'), and <number> is the number of streamlines (in thousands) that are seeded from each seed voxel.  This text file can have comments in it (using '#').
+
