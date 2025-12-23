@@ -1,0 +1,1 @@
+docker build --network=host -t  zswang2020/meprep_final:latest   --build-arg VERSION=$( python get_version.py ) .
