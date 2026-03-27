@@ -289,6 +289,7 @@ COPY ./MEPrep_ICA-AROMA /opt/MEPrep_ICA-AROMA
 ### ZSW
 RUN pip install duecredit
 RUN pip install future
+RUN python -m pip install --upgrade pip wheel setuptools==80.9.0
 ### ZSW
 
 ####ZSW
