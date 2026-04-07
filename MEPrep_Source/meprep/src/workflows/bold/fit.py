@@ -938,6 +938,7 @@ def init_bold_native_wf(
             ]),
         ])  # fmt:skip
     else:
+        outputnode.inputs.tedana_choice_selected = 'optcom'    ###ZSW
         workflow.connect([
             (inputnode, outputnode, [('motion_xfm', 'motion_xfm')]),
             (boldbuffer, outputnode, [('bold_file', 'bold_minimal')]),

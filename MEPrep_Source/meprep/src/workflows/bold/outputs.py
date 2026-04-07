@@ -37,7 +37,11 @@ from fmriprep.interfaces.bids import BIDSURI
 from fmriprep.utils.bids import dismiss_echo
 
 ###ZSW
-def get_MEPrep_Method(tedana_choice, preDenoising_choice):
+def get_MEPrep_Method(tedana_choice, preDenoising_choice, multiecho):
+    
+    if not multiecho:  ## added for single-echo and multi-echo data at the same folder 
+        return None
+    
     MEPrepMethod_dict = {
         'Raw': {
             'optcom': 'optcom',
@@ -728,7 +732,7 @@ def init_ds_bold_native_wf(
                 ('source_files', 'source_file'),
                 ('bold', 'in_file'),
              #   (('tedana_choice_selected', combine_string, 'preproc', multiecho), 'desc'),  ## ZSW
-                (('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice), 'proc'),  ## ZSW
+                (('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice, multiecho), 'proc'),  ## ZSW
             ]),
             (sources, ds_bold, [('out', 'Sources')]),
         ])  # fmt:skip
@@ -874,7 +878,7 @@ def init_ds_volumes_wf(
             ('cohort', 'cohort'),
             ('resolution', 'resolution'),
           #  (('tedana_choice_selected', combine_string, 'preproc', multiecho), 'desc'),  ## ZSW
-            (('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice), 'proc'),  ## ZSW
+            (('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice, multiecho), 'proc'),  ## ZSW
         ]),
         (sources, ds_bold, [('out', 'Sources')]),
     ])  # fmt:skip
@@ -969,7 +973,7 @@ def init_ds_volumes_wf(
                 ('cohort', 'cohort'),
                 ('resolution', 'resolution'),
               #  (('tedana_choice_selected', combine_string, 'brain', multiecho), 'desc'),   ##ZSW
-                (('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice), 'proc'),  ## ZSW
+                (('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice, multiecho), 'proc'),  ## ZSW
             ])
             for datasink in datasinks
         ] + [

@@ -51,7 +51,11 @@ str2 = the original desc
 made by Dr. ZSW Wang
 """
 ###ZSW
-def get_MEPrep_Method(tedana_choice, preDenoising_choice):
+def get_MEPrep_Method(tedana_choice, preDenoising_choice, multiecho):
+    
+    if not multiecho:  ## added for single-echo and multi-echo data at the same folder 
+        return None
+    
     MEPrepMethod_dict = {
         'Raw': {
             'optcom': 'optcom',
@@ -811,7 +815,7 @@ def init_carpetplot_wf(
         (parcels, conf_plot, [('out', 'in_segm')]),
         (conf_plot, ds_report_bold_conf, [('out_file', 'in_file')]),
     #    (inputnode, ds_report_bold_conf, [(('tedana_choice_selected', combine_string, 'carpetplot', multiecho), 'desc')]),  ### ZSW
-        (inputnode, ds_report_bold_conf, [(('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice), 'proc')]),  ### ZS
+        (inputnode, ds_report_bold_conf, [(('tedana_choice_selected', get_MEPrep_Method, preDenoising_choice, multiecho), 'proc')]),  ### ZSW
         (conf_plot, outputnode, [('out_file', 'out_carpetplot')]),
     ])  # fmt:skip
     return workflow

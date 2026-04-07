@@ -289,6 +289,12 @@ configured with cubic B-spline interpolation.
 
     # Now that we're resampling and combining, multiecho matters
     multiecho = len(bold_series) > 2
+    
+    ###ZSW
+    if not multiecho and (config.execution.tedana_choice!= 'optcom' or config.execution.preDenoising_choice!= 'Raw'): 
+        config.loggers.workflow.log(25, 'MEPrep performs preprocessing single-echo data only during choosing OptCom method!')
+        return None
+    ###ZSW
 
     spaces = config.workflow.spaces
     nonstd_spaces = set(spaces.get_nonstandard())
@@ -670,7 +676,7 @@ excluding voxels whose time-series have a locally high coefficient of variation.
             ### ZSW
             (bold_native_wf, ds_bold_cifti, [
               #  (('outputnode.tedana_choice_selected', combine_string, '', multiecho), 'desc'),   ##ZSW
-                (('outputnode.tedana_choice_selected', get_MEPrep_Method, preDenoising_choice), 'proc'),  ## ZSW
+                 (('outputnode.tedana_choice_selected', get_MEPrep_Method, preDenoising_choice, multiecho), 'proc'),  ## ZSW
             ]),
             ### ZSW
         ])  # fmt:skip
@@ -720,7 +726,7 @@ excluding voxels whose time-series have a locally high coefficient of variation.
         ### ZSW
         (bold_native_wf, ds_confounds, [
         #   (('outputnode.tedana_choice_selected', combine_string, 'confounds', multiecho), 'desc'),  ### ZSW
-           (('outputnode.tedana_choice_selected', get_MEPrep_Method, preDenoising_choice), 'proc'),  ## ZSW
+           (('outputnode.tedana_choice_selected', get_MEPrep_Method, preDenoising_choice, multiecho), 'proc'),  ## ZSW
         ]),
         ### ZSW
     ])  # fmt:skip
